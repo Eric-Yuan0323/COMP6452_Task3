@@ -1,0 +1,13 @@
+Network: Sepolia
+
+ParticipantRegistry:
+TO_BE_FILLED_AFTER_DEPLOYMENT
+
+BatchRegistry:
+TO_BE_FILLED_AFTER_DEPLOYMENT
+
+ColdChainCompliance:
+TO_BE_FILLED_AFTER_DEPLOYMENT
+
+Deployment transaction hashes:
+TO_BE_FILLED_AFTER_DEPLOYMENT
