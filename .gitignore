@@ -1,4 +1,7 @@
+# Environment variables and private key
 .env
+
+# Foundry generated files
 cache/
-broadcast/
 out/
+broadcast/
