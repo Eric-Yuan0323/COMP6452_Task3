@@ -1,13 +1,16 @@
 Network: Sepolia
+Chain ID: 11155111
 
 ParticipantRegistry:
-TO_BE_FILLED_AFTER_DEPLOYMENT
+0x71d9c2286F8D918ceA38eD71DeCecDa3A3A89441
 
 BatchRegistry:
-TO_BE_FILLED_AFTER_DEPLOYMENT
+0x438f99B334F5c3245bd28689f76E848591DA485f
 
 ColdChainCompliance:
-TO_BE_FILLED_AFTER_DEPLOYMENT
+0xdC68A2246EcDa30A8fAE316587Df2A31F8E4b2CD
 
-Deployment transaction hashes:
-TO_BE_FILLED_AFTER_DEPLOYMENT
+Etherscan:
+https://sepolia.etherscan.io/address/0x71d9c2286F8D918ceA38eD71DeCecDa3A3A89441
+https://sepolia.etherscan.io/address/0x438f99B334F5c3245bd28689f76E848591DA485f
+https://sepolia.etherscan.io/address/0xdC68A2246EcDa30A8fAE316587Df2A31F8E4b2CD
