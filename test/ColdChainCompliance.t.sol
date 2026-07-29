@@ -115,69 +115,40 @@ contract ColdChainComplianceTest is Test {
 
         uint64 measuredAt = uint64(block.timestamp);
 
-        bytes memory signature =
-            _signReading(1, 40, measuredAt, 1);
+        bytes memory signature = _signReading(1, 40, measuredAt, 1);
 
-        vm.expectRevert(
-            ColdChainCompliance.SensorNotActive.selector
-        );
+        vm.expectRevert(ColdChainCompliance.SensorNotActive.selector);
 
-        compliance.submitSignedReading(
-            1,
-            40,
-            measuredAt,
-            1,
-            signature
-        );
+        compliance.submitSignedReading(1, 40, measuredAt, 1, signature);
     }
-    
+
     function testExpiredTemperatureReadingReverts() public {
-    // Move the blockchain time forward so that subtraction is safe.
-    vm.warp(1 days);
+        // Move the blockchain time forward so that subtraction is safe.
+        vm.warp(1 days);
 
-    uint64 measuredAt = uint64(
-        block.timestamp - compliance.maximumReadingAge() - 1
-    );
+        uint64 measuredAt = uint64(block.timestamp - compliance.maximumReadingAge() - 1);
 
-    bytes memory signature =
-        _signReading(1, 40, measuredAt, 2);
+        bytes memory signature = _signReading(1, 40, measuredAt, 2);
 
-    vm.expectRevert();
+        vm.expectRevert();
 
-    compliance.submitSignedReading(
-        1,
-        40,
-        measuredAt,
-        2,
-        signature
-    );
+        compliance.submitSignedReading(1, 40, measuredAt, 2, signature);
     }
 
     function testFutureTemperatureReadingReverts() public {
         uint64 measuredAt = uint64(block.timestamp + 60);
 
-        bytes memory signature =
-            _signReading(1, 40, measuredAt, 3);
+        bytes memory signature = _signReading(1, 40, measuredAt, 3);
 
         vm.expectRevert();
 
-        compliance.submitSignedReading(
-            1,
-            40,
-            measuredAt,
-            3,
-            signature
-        );
+        compliance.submitSignedReading(1, 40, measuredAt, 3, signature);
     }
 
     function testSensorOwnedByPreviousCustodianReverts() public {
         address processor = address(0x1002);
 
-        participants.registerParticipant(
-            processor,
-            ParticipantRegistry.Role.Processor,
-            "Milk Processor"
-        );
+        participants.registerParticipant(processor, ParticipantRegistry.Role.Processor, "Milk Processor");
 
         // The batch moves from the farm to the processor.
         vm.prank(farm);
@@ -187,18 +158,11 @@ contract ColdChainComplianceTest is Test {
         // the current custodian.
         uint64 measuredAt = uint64(block.timestamp);
 
-        bytes memory signature =
-            _signReading(1, 40, measuredAt, 4);
+        bytes memory signature = _signReading(1, 40, measuredAt, 4);
 
         vm.expectRevert();
 
-        compliance.submitSignedReading(
-            1,
-            40,
-            measuredAt,
-            4,
-            signature
-        );
+        compliance.submitSignedReading(1, 40, measuredAt, 4, signature);
     }
 
     function testUnauthorisedUserCannotRecallBatch() public {
@@ -207,10 +171,6 @@ contract ColdChainComplianceTest is Test {
         vm.prank(attacker);
         vm.expectRevert();
 
-        compliance.requestRecall(
-            1,
-            "Unauthorised recall attempt"
-        );
+        compliance.requestRecall(1, "Unauthorised recall attempt");
     }
-    
 }

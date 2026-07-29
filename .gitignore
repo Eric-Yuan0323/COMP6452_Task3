@@ -1,8 +1,11 @@
+# Environment variables and private key
 .env
+
+# Foundry generated files
 cache/
-broadcast/
 out/
 node_modules/
 data/*.db
 data/*.db-shm
 data/*.db-wal
+broadcast/
