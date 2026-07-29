@@ -3,12 +3,14 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Sensor simulator, oracle relay and off-chain storage for the fresh-milk cold-chain PoC",
+  "description": "Sensor simulator, oracle relay, off-chain storage and batch query visualization for the fresh-milk cold-chain PoC",
   "scripts": {
     "sensor": "node --disable-warning=ExperimentalWarning offchain/cli.js",
     "sensor:normal": "node --disable-warning=ExperimentalWarning offchain/cli.js --mode normal",
     "sensor:violation": "node --disable-warning=ExperimentalWarning offchain/cli.js --mode violation",
-    "setup:demo": "node --disable-warning=ExperimentalWarning offchain/setup-demo.js"
+    "setup:demo": "node --disable-warning=ExperimentalWarning offchain/setup-demo.js",
+    "query": "node interface/queryBatch.js",
+    "visualize": "node interface/visualizeDemo.js"
   },
   "dependencies": {
     "ethers": "^6.15.0"
