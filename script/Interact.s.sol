@@ -11,12 +11,9 @@ import {ColdChainCompliance} from "../src/ColdChainCompliance.sol";
 contract Interact is Script {
     function run() external {
         // Contract addresses
-        address participantRegistryAddress =
-            vm.envAddress("PARTICIPANT_REGISTRY");
-        address batchRegistryAddress =
-            vm.envAddress("BATCH_REGISTRY");
-        address complianceAddress =
-            vm.envAddress("COLD_CHAIN_COMPLIANCE");
+        address participantRegistryAddress = vm.envAddress("PARTICIPANT_REGISTRY");
+        address batchRegistryAddress = vm.envAddress("BATCH_REGISTRY");
+        address complianceAddress = vm.envAddress("COLD_CHAIN_COMPLIANCE");
 
         // Private keys
         uint256 adminPrivateKey = vm.envUint("ADMIN_PRIVATE_KEY");
@@ -34,25 +31,16 @@ contract Interact is Script {
         address retailer = vm.addr(retailerPrivateKey);
         address sensor = vm.addr(sensorPrivateKey);
 
-        ParticipantRegistry participantRegistry =
-            ParticipantRegistry(participantRegistryAddress);
+        ParticipantRegistry participantRegistry = ParticipantRegistry(participantRegistryAddress);
 
-        BatchRegistry batchRegistry =
-            BatchRegistry(batchRegistryAddress);
+        BatchRegistry batchRegistry = BatchRegistry(batchRegistryAddress);
 
-        ColdChainCompliance compliance =
-            ColdChainCompliance(complianceAddress);
+        ColdChainCompliance compliance = ColdChainCompliance(complianceAddress);
 
         // Basic deployment checks
-        require(
-            participantRegistry.administrator() == admin,
-            "Wrong administrator private key"
-        );
+        require(participantRegistry.administrator() == admin, "Wrong administrator private key");
 
-        require(
-            batchRegistry.complianceContract() == complianceAddress,
-            "Compliance contract linkage is incorrect"
-        );
+        require(batchRegistry.complianceContract() == complianceAddress, "Compliance contract linkage is incorrect");
 
         console2.log("Administrator:", admin);
         console2.log("Farm:", farm);
@@ -68,48 +56,24 @@ contract Interact is Script {
 
         vm.startBroadcast(adminPrivateKey);
 
-        if (
-            participantRegistry.getRole(farm)
-                == ParticipantRegistry.Role.None
-        ) {
+        if (participantRegistry.getRole(farm) == ParticipantRegistry.Role.None) {
+            participantRegistry.registerParticipant(farm, ParticipantRegistry.Role.Farm, "Green Valley Farm");
+        }
+
+        if (participantRegistry.getRole(processor) == ParticipantRegistry.Role.None) {
             participantRegistry.registerParticipant(
-                farm,
-                ParticipantRegistry.Role.Farm,
-                "Green Valley Farm"
+                processor, ParticipantRegistry.Role.Processor, "Fresh Milk Processing"
             );
         }
 
-        if (
-            participantRegistry.getRole(processor)
-                == ParticipantRegistry.Role.None
-        ) {
+        if (participantRegistry.getRole(logistics) == ParticipantRegistry.Role.None) {
             participantRegistry.registerParticipant(
-                processor,
-                ParticipantRegistry.Role.Processor,
-                "Fresh Milk Processing"
+                logistics, ParticipantRegistry.Role.Logistics, "Sydney Cold Logistics"
             );
         }
 
-        if (
-            participantRegistry.getRole(logistics)
-                == ParticipantRegistry.Role.None
-        ) {
-            participantRegistry.registerParticipant(
-                logistics,
-                ParticipantRegistry.Role.Logistics,
-                "Sydney Cold Logistics"
-            );
-        }
-
-        if (
-            participantRegistry.getRole(retailer)
-                == ParticipantRegistry.Role.None
-        ) {
-            participantRegistry.registerParticipant(
-                retailer,
-                ParticipantRegistry.Role.Retailer,
-                "Local Fresh Market"
-            );
+        if (participantRegistry.getRole(retailer) == ParticipantRegistry.Role.None) {
+            participantRegistry.registerParticipant(retailer, ParticipantRegistry.Role.Retailer, "Local Fresh Market");
         }
 
         vm.stopBroadcast();
@@ -118,18 +82,14 @@ contract Interact is Script {
         // 2. Logistics company registers its IoT sensor
         // ------------------------------------------------------------
 
-        ParticipantRegistry.Sensor memory storedSensor =
-            participantRegistry.getSensor(sensor);
+        ParticipantRegistry.Sensor memory storedSensor = participantRegistry.getSensor(sensor);
 
         if (storedSensor.operator == address(0)) {
             vm.startBroadcast(logisticsPrivateKey);
             participantRegistry.registerSensor(sensor);
             vm.stopBroadcast();
         } else {
-            require(
-                storedSensor.operator == logistics,
-                "Sensor belongs to another operator"
-            );
+            require(storedSensor.operator == logistics, "Sensor belongs to another operator");
         }
 
         console2.log("Participants and sensor registered.");
@@ -138,15 +98,11 @@ contract Interact is Script {
         // Batch 1: compliant shipment delivered to retailer
         // ============================================================
 
-        bytes32 compliantMetadataHash = keccak256(
-            bytes(
-                '{"batchReference":"MILK-001","product":"Fresh Milk","route":"compliant"}'
-            )
-        );
+        bytes32 compliantMetadataHash =
+            keccak256(bytes('{"batchReference":"MILK-001","product":"Fresh Milk","route":"compliant"}'));
 
         vm.startBroadcast(farmPrivateKey);
-        uint256 compliantBatchId =
-            batchRegistry.createBatch(compliantMetadataHash);
+        uint256 compliantBatchId = batchRegistry.createBatch(compliantMetadataHash);
         vm.stopBroadcast();
 
         console2.log("Compliant batch created:", compliantBatchId);
@@ -165,33 +121,17 @@ contract Interact is Script {
         uint64 normalMeasuredAt = uint64(block.timestamp);
         uint256 normalNonce = compliantBatchId * 1000 + 1;
 
-        bytes memory normalSignature = _signReading(
-            compliance,
-            sensorPrivateKey,
-            compliantBatchId,
-            40,
-            normalMeasuredAt,
-            normalNonce
-        );
+        bytes memory normalSignature =
+            _signReading(compliance, sensorPrivateKey, compliantBatchId, 40, normalMeasuredAt, normalNonce);
 
         // Anyone may relay the reading. Logistics acts as relayer here.
         vm.startBroadcast(logisticsPrivateKey);
-        compliance.submitSignedReading(
-            compliantBatchId,
-            40,
-            normalMeasuredAt,
-            normalNonce,
-            normalSignature
-        );
+        compliance.submitSignedReading(compliantBatchId, 40, normalMeasuredAt, normalNonce, normalSignature);
         vm.stopBroadcast();
 
-        ColdChainCompliance.LatestReading memory normalReading =
-            compliance.getLatestReading(compliantBatchId);
+        ColdChainCompliance.LatestReading memory normalReading = compliance.getLatestReading(compliantBatchId);
 
-        console2.log(
-            "Normal temperature (tenths C):",
-            int256(normalReading.temperatureTenths)
-        );
+        console2.log("Normal temperature (tenths C):", int256(normalReading.temperatureTenths));
         console2.log("Normal reading violation:", normalReading.violation);
 
         // Logistics -> Retailer
@@ -199,35 +139,21 @@ contract Interact is Script {
         batchRegistry.transferCustody(compliantBatchId, retailer);
         vm.stopBroadcast();
 
-        BatchRegistry.Batch memory compliantBatch =
-            batchRegistry.getBatch(compliantBatchId);
+        BatchRegistry.Batch memory compliantBatch = batchRegistry.getBatch(compliantBatchId);
 
-        console2.log(
-            "Compliant batch final custodian:",
-            compliantBatch.currentCustodian
-        );
-        console2.log(
-            "Compliant batch final status:",
-            uint256(compliantBatch.status)
-        );
-        console2.log(
-            "Compliant batch custody transfers:",
-            uint256(compliantBatch.custodyTransfers)
-        );
+        console2.log("Compliant batch final custodian:", compliantBatch.currentCustodian);
+        console2.log("Compliant batch final status:", uint256(compliantBatch.status));
+        console2.log("Compliant batch custody transfers:", uint256(compliantBatch.custodyTransfers));
 
         // ============================================================
         // Batch 2: temperature violation followed by recall
         // ============================================================
 
-        bytes32 recalledMetadataHash = keccak256(
-            bytes(
-                '{"batchReference":"MILK-002","product":"Fresh Milk","route":"temperature-violation"}'
-            )
-        );
+        bytes32 recalledMetadataHash =
+            keccak256(bytes('{"batchReference":"MILK-002","product":"Fresh Milk","route":"temperature-violation"}'));
 
         vm.startBroadcast(farmPrivateKey);
-        uint256 recalledBatchId =
-            batchRegistry.createBatch(recalledMetadataHash);
+        uint256 recalledBatchId = batchRegistry.createBatch(recalledMetadataHash);
         vm.stopBroadcast();
 
         console2.log("Recall-demo batch created:", recalledBatchId);
@@ -247,68 +173,32 @@ contract Interact is Script {
         uint64 abnormalMeasuredAt = uint64(block.timestamp);
         uint256 abnormalNonce = recalledBatchId * 1000 + 2;
 
-        bytes memory abnormalSignature = _signReading(
-            compliance,
-            sensorPrivateKey,
-            recalledBatchId,
-            85,
-            abnormalMeasuredAt,
-            abnormalNonce
-        );
+        bytes memory abnormalSignature =
+            _signReading(compliance, sensorPrivateKey, recalledBatchId, 85, abnormalMeasuredAt, abnormalNonce);
 
         vm.startBroadcast(logisticsPrivateKey);
-        compliance.submitSignedReading(
-            recalledBatchId,
-            85,
-            abnormalMeasuredAt,
-            abnormalNonce,
-            abnormalSignature
-        );
+        compliance.submitSignedReading(recalledBatchId, 85, abnormalMeasuredAt, abnormalNonce, abnormalSignature);
         vm.stopBroadcast();
 
-        ColdChainCompliance.LatestReading memory abnormalReading =
-            compliance.getLatestReading(recalledBatchId);
+        ColdChainCompliance.LatestReading memory abnormalReading = compliance.getLatestReading(recalledBatchId);
 
-        BatchRegistry.Batch memory nonCompliantBatch =
-            batchRegistry.getBatch(recalledBatchId);
+        BatchRegistry.Batch memory nonCompliantBatch = batchRegistry.getBatch(recalledBatchId);
 
-        console2.log(
-            "Abnormal temperature (tenths C):",
-            int256(abnormalReading.temperatureTenths)
-        );
-        console2.log(
-            "Abnormal reading violation:",
-            abnormalReading.violation
-        );
-        console2.log(
-            "Status after violation:",
-            uint256(nonCompliantBatch.status)
-        );
+        console2.log("Abnormal temperature (tenths C):", int256(abnormalReading.temperatureTenths));
+        console2.log("Abnormal reading violation:", abnormalReading.violation);
+        console2.log("Status after violation:", uint256(nonCompliantBatch.status));
 
         // Current custodian requests recall
         vm.startBroadcast(logisticsPrivateKey);
-        compliance.requestRecall(
-            recalledBatchId,
-            "Temperature exceeded the permitted cold-chain threshold"
-        );
+        compliance.requestRecall(recalledBatchId, "Temperature exceeded the permitted cold-chain threshold");
         vm.stopBroadcast();
 
-        BatchRegistry.Batch memory recalledBatch =
-            batchRegistry.getBatch(recalledBatchId);
+        BatchRegistry.Batch memory recalledBatch = batchRegistry.getBatch(recalledBatchId);
 
         console2.log("Recalled batch ID:", recalledBatchId);
-        console2.log(
-            "Recalled batch custodian:",
-            recalledBatch.currentCustodian
-        );
-        console2.log(
-            "Recalled batch final status:",
-            uint256(recalledBatch.status)
-        );
-        console2.log(
-            "Recalled batch custody transfers:",
-            uint256(recalledBatch.custodyTransfers)
-        );
+        console2.log("Recalled batch custodian:", recalledBatch.currentCustodian);
+        console2.log("Recalled batch final status:", uint256(recalledBatch.status));
+        console2.log("Recalled batch custody transfers:", uint256(recalledBatch.custodyTransfers));
 
         console2.log("Sepolia interaction completed successfully.");
     }
@@ -321,23 +211,12 @@ contract Interact is Script {
         uint64 measuredAt,
         uint256 nonce
     ) internal view returns (bytes memory signature) {
-        bytes32 digest = compliance.getReadingDigest(
-            batchId,
-            temperatureTenths,
-            measuredAt,
-            nonce
-        );
+        bytes32 digest = compliance.getReadingDigest(batchId, temperatureTenths, measuredAt, nonce);
 
         // ColdChainCompliance._recoverSigner() applies this prefix.
-        bytes32 signedDigest = keccak256(
-            abi.encodePacked(
-                "\x19Ethereum Signed Message:\n32",
-                digest
-            )
-        );
+        bytes32 signedDigest = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", digest));
 
-        (uint8 v, bytes32 r, bytes32 s) =
-            vm.sign(sensorPrivateKey, signedDigest);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(sensorPrivateKey, signedDigest);
 
         signature = abi.encodePacked(r, s, v);
     }
